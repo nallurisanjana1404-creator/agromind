@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}Analytics | AgroMind{% endblock %}
+{% block heading %}Analytics Dashboard{% endblock %}
+{% block description %}Deep dive into your farm's historical data and performance trends.{% endblock %}
+
+{% block content %}
+<div id="analytics-metrics" class="stats-grid stats" style="margin-bottom: 25px;">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#e8f4ea; color:#28734a;"><i class="fa-solid fa-list-ol"></i></div>
+        <div class="stat-info"><span class="stat-label">Total Analyses</span><h2 id="metricTotal">--</h2></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#e2f1f7; color:#3182a5;"><i class="fa-solid fa-droplet"></i></div>
+        <div class="stat-info"><span class="stat-label">Avg Moisture</span><h2 id="metricMoisture">--%</h2></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#e8eafa; color:#5d68a8;"><i class="fa-solid fa-faucet-drip"></i></div>
+        <div class="stat-info"><span class="stat-label">Total Water Used</span><h2 id="metricWater">-- L</h2></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#e7f2e6; color:#4f9160;"><i class="fa-solid fa-leaf"></i></div>
+        <div class="stat-info"><span class="stat-label">Estimated Water Saved</span><h2 id="metricSaved">-- L</h2></div>
+    </div>
+</div>
+
+<div id="no-data-message" class="card" style="display: none; text-align: center; padding: 50px; margin-bottom: 25px;">
+    <i class="fa-solid fa-chart-pie" style="font-size: 50px; color: #a1ada4; margin-bottom: 15px;"></i>
+    <h2>Not enough historical data</h2>
+    <p style="color: #77847c; margin-top: 10px; font-size: 15px;">We need at least 3 valid records to generate meaningful trends. Please run more farm analyses in the Irrigation page.</p>
+</div>
+
+<div id="analytics-charts" style="display: none;">
+    <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 25px;">
+        <div class="card">
+            <div class="card-header"><h2><i class="fa-solid fa-chart-line" style="color:#3182a5;"></i> Soil Moisture Trend</h2></div>
+            <div style="height: 250px;">
+                <canvas id="moistureChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h2><i class="fa-solid fa-temperature-half" style="color:#d56d3d;"></i> Temperature Trend</h2></div>
+            <div style="height: 250px;">
+                <canvas id="tempChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 25px;">
+        <div class="card">
+            <div class="card-header"><h2><i class="fa-solid fa-chart-bar" style="color:#5d68a8;"></i> Water Usage (L)</h2></div>
+            <div style="height: 250px;">
+                <canvas id="waterChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h2><i class="fa-solid fa-chart-pie" style="color:#4b9561;"></i> Irrigation Activity</h2></div>
+            <div style="height: 250px; display: flex; justify-content: center;">
+                <div style="width: 250px;">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="card table-card">
+    <div class="card-header">
+        <h2><i class="fa-solid fa-table" style="color:#77847c;"></i> Recent Analyses</h2>
+    </div>
+    <div class="table-wrap">
+        <table style="width: 100%; text-align: left; border-collapse: collapse; margin-top: 10px;">
+            <thead>
+                <tr style="border-bottom: 1px solid #dce5de;">
+                    <th style="padding: 12px 15px; color: #536159; font-weight: bold;">Date</th>
+                    <th style="padding: 12px 15px; color: #536159; font-weight: bold;">Crop</th>
+                    <th style="padding: 12px 15px; color: #536159; font-weight: bold;">Moisture</th>
+                    <th style="padding: 12px 15px; color: #536159; font-weight: bold;">Temperature</th>
+                    <th style="padding: 12px 15px; color: #536159; font-weight: bold;">Irrigation</th>
+                    <th style="padding: 12px 15px; color: #536159; font-weight: bold;">Water</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in analyses %}
+                <tr style="border-bottom: 1px solid #f0f4f1;">
+                    <td style="padding: 12px 15px; font-size: 13px;">{{ item['created_at'][:16].replace('T', ' ') }}</td>
+                    <td style="padding: 12px 15px; font-size: 13px;">{{ item['crop'] }}</td>
+                    <td style="padding: 12px 15px; font-size: 13px;">{{ item['moisture'] }}%</td>
+                    <td style="padding: 12px 15px; font-size: 13px;">
+                        {% if item['temperature'] > 60 or item['temperature'] < -20 %}
+                            <span style="color:#d87545; font-weight: bold;" title="Unrealistic reading">{{ item['temperature'] }} °C ⚠️</span>
+                        {% else %}
+                            {{ item['temperature'] }} °C
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 15px; font-size: 13px;">
+                        {% if item['irrigation_required'] %}
+                            <span style="color: #d87545; font-weight: bold;">Required</span>
+                        {% else %}
+                            <span style="color: #4b9561; font-weight: bold;">Not required</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 15px; font-size: 13px;">{{ item['water_quantity'] }} L</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="padding: 25px; text-align: center; color: #77847c;">No analyses yet. Use the irrigation planner to create your first record.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const rawData = [
+        {% for item in analyses %}
+        {
+            date: "{{ item['created_at'] }}",
+            crop: "{{ item['crop'] }}",
+            moisture: {{ item['moisture'] }},
+            temperature: {{ item['temperature'] }},
+            water: {{ item['water_quantity'] }},
+            irrigation_required: {{ item['irrigation_required'] }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // Validate and filter unrealistic readings
+        let filteredData = rawData.filter(d => {
+            return d.temperature >= -20 && d.temperature <= 60 && 
+                   d.moisture >= 0 && d.moisture <= 100;
+        });
+
+        // Reverse to chronological order (oldest to newest)
+        filteredData.reverse();
+
+        // Compute metrics
+        const totalAnalyses = filteredData.length;
+        if (totalAnalyses === 0) {
+            document.getElementById('no-data-message').style.display = 'block';
+            return;
+        }
+
+        const avgMoisture = filteredData.reduce((acc, curr) => acc + curr.moisture, 0) / totalAnalyses;
+        const totalWater = filteredData.reduce((acc, curr) => acc + curr.water, 0);
+        
+        // Assume each time irrigation wasn't required we saved ~600L
+        const waterSaved = filteredData.filter(d => !d.irrigation_required).length * 600;
+
+        document.getElementById('metricTotal').textContent = totalAnalyses;
+        document.getElementById('metricMoisture').textContent = Math.round(avgMoisture) + '%';
+        document.getElementById('metricWater').textContent = totalWater + ' L';
+        document.getElementById('metricSaved').textContent = waterSaved + ' L';
+
+        if (totalAnalyses < 3) {
+            document.getElementById('no-data-message').style.display = 'block';
+        } else {
+            document.getElementById('analytics-charts').style.display = 'block';
+            initCharts(filteredData);
+        }
+    });
+
+    function initCharts(data) {
+        const labels = data.map(d => {
+            const dt = new Date(d.date);
+            return dt.toLocaleDateString() + ' ' + String(dt.getHours()).padStart(2, '0') + ':00';
+        });
+
+        const moistureData = data.map(d => d.moisture);
+        const tempData = data.map(d => d.temperature);
+        const waterData = data.map(d => d.water);
+        
+        let requiredCount = data.filter(d => d.irrigation_required).length;
+        let notRequiredCount = data.length - requiredCount;
+
+        Chart.defaults.font.family = 'Arial, sans-serif';
+        Chart.defaults.color = '#77847c';
+
+        // 1. Soil Moisture Trend
+        new Chart(document.getElementById('moistureChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Moisture (%)',
+                    data: moistureData,
+                    borderColor: '#3182a5',
+                    backgroundColor: 'rgba(49, 130, 165, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, max: 100 } }
+            }
+        });
+
+        // 2. Temperature Trend
+        new Chart(document.getElementById('tempChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Temperature (°C)',
+                    data: tempData,
+                    borderColor: '#d56d3d',
+                    backgroundColor: 'rgba(213, 109, 61, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // 3. Water Usage
+        new Chart(document.getElementById('waterChart'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Water Used (L)',
+                    data: waterData,
+                    backgroundColor: '#5d68a8',
+                    borderRadius: 4
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // 4. Irrigation Activity
+        new Chart(document.getElementById('activityChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Required', 'Not Required'],
+                datasets: [{
+                    data: [requiredCount, notRequiredCount],
+                    backgroundColor: ['#d87545', '#4b9561'],
+                    borderWidth: 0
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

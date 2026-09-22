@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}AgroMind{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="page-shell">
+    <aside class="sidebar">
+        <a class="logo" href="/dashboard">
+            <div class="logo-icon"><i class="fa-solid fa-seedling"></i></div>
+            <div><h2>AgroMind</h2><span>Smart Farming</span></div>
+        </a>
+        <nav class="sidebar-nav">
+            <a href="/dashboard" class="nav-item {{ 'active' if request.path == '/dashboard' else '' }}"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a>
+            <a href="/farms" class="nav-item {{ 'active' if request.path == '/farms' else '' }}"><i class="fa-solid fa-tractor"></i><span>My Farms</span></a>
+            <a href="/irrigation" class="nav-item {{ 'active' if request.path == '/irrigation' else '' }}"><i class="fa-solid fa-droplet"></i><span>Irrigation</span></a>
+            <a href="/crop-health" class="nav-item {{ 'active' if request.path == '/crop-health' else '' }}"><i class="fa-solid fa-leaf"></i><span>Crop Health</span></a>
+            <a href="/analytics" class="nav-item {{ 'active' if request.path == '/analytics' else '' }}"><i class="fa-solid fa-chart-column"></i><span>Analytics</span></a>
+            <a href="/weather" class="nav-item {{ 'active' if request.path == '/weather' else '' }}"><i class="fa-solid fa-cloud-sun"></i><span>Weather</span></a>
+            <a href="/ai-assistant" class="nav-item {{ 'active' if request.path == '/ai-assistant' else '' }}"><i class="fa-solid fa-robot"></i><span>AI Assistant</span></a>
+        </nav>
+        {% if active_farm %}
+        <div style="margin: 8px 4px 18px; padding: 10px 12px; border: 1px solid rgba(184,210,189,.28); border-radius: 10px; color: #d6e5db; font-size: 11px; line-height: 1.4;">
+            <span style="display:block; opacity:.65; text-transform:uppercase; letter-spacing:.8px;">Active Farm</span>
+            <strong style="display:block; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ active_farm['name'] }}</strong>
+        </div>
+        {% endif %}
+        <div class="sidebar-bottom">
+            {% if session.get('user_name') %}
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">
+                    {{ session['user_name'][0] | upper }}
+                </div>
+                <div class="sidebar-user-info">
+                    <span class="sidebar-user-name">{{ session['user_name'] }}</span>
+                    <span class="sidebar-user-role">Farmer</span>
+                </div>
+            </div>
+            {% endif %}
+            <a href="/" class="nav-item"><i class="fa-solid fa-house"></i><span>Home</span></a>
+            <a href="/logout" class="nav-item nav-item-logout"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></a>
+        </div>
+    </aside>
+    <main class="main page-content">
+        <header class="page-heading"><div><span class="section-badge">AGROMIND</span><h1>{% block heading %}Smart farming{% endblock %}</h1><p>{% block description %}Practical intelligence for your farm.{% endblock %}</p></div><div class="header-status"><span class="status-dot"></span>AI services online</div></header>
+        {% block content %}{% endblock %}
+    </main>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

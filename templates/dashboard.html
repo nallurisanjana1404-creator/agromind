@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}AgroMind | Smart Farming Dashboard{% endblock %}
+{% block heading %}Dashboard{% endblock %}
+{% block description %}Welcome back, Farmer 👋. Here is an overview of your farm.{% endblock %}
+
+{% block content %}
+<section class="card" style="margin-bottom:25px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; gap:15px; flex-wrap:wrap;">
+    <div><span style="display:block; color:#77847c; font-size:11px; text-transform:uppercase; letter-spacing:1px;">Active Farm</span><strong id="activeFarmName" style="font-size:20px; color:#173d2a;">{{ active_farm['name'] if active_farm else 'No farm selected' }}</strong></div>
+    <a href="/farms" class="irr-btn-secondary" style="text-decoration:none;"><i class="fa-solid fa-tractor"></i> Manage Farms</a>
+</section>
+<section class="stats-grid stats">
+    <div class="stat-card">
+        <div class="stat-icon moisture-icon"><i class="fa-solid fa-droplet"></i></div>
+        <div class="stat-info"><span class="stat-label">Soil Moisture</span><h2 id="moistureValue">--%</h2><small>Current reading</small></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon temperature-icon"><i class="fa-solid fa-temperature-half"></i></div>
+        <div class="stat-info"><span class="stat-label">Temperature</span><h2 id="temperatureValue">--°C</h2><small>Current condition</small></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon humidity-icon"><i class="fa-solid fa-water"></i></div>
+        <div class="stat-info"><span class="stat-label">Humidity</span><h2 id="humidityValue">--%</h2><small>Relative humidity</small></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon rain-icon"><i class="fa-solid fa-cloud-rain"></i></div>
+        <div class="stat-info"><span class="stat-label">Rain Probability</span><h2 id="rainValue">--%</h2><small>Today's forecast</small></div>
+    </div>
+</section>
+
+<div class="dashboard-grid" style="margin-top: 25px;">
+    <!-- Left Column -->
+    <div class="dashboard-col">
+        <!-- Farm Status Summary -->
+        <section class="card" style="margin-bottom: 25px;">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-seedling" style="color: #4CAF50;"></i> Farm Status</h2>
+            </div>
+            <p>Your current crop is <strong id="selectedCrop">--</strong> on <strong id="selectedSoil">--</strong> soil.</p>
+            <p style="margin-top: 10px;">Water Availability: <strong id="selectedWater">--</strong>.</p>
+            <div style="margin-top: 20px;">
+                <a href="/irrigation" style="color: #28734a; font-weight: bold; text-decoration: none;">Update Farm Data <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+        </section>
+
+        <!-- Crop Health summary -->
+        <section class="card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-leaf" style="color: #4CAF50;"></i> Crop Health</h2>
+            </div>
+            <div class="health-content">
+                <div class="health-score" id="healthScore">--%</div>
+                <div>
+                    <h3>Overall health score</h3>
+                    <p>Based on your latest field conditions.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Right Column -->
+    <div class="dashboard-col">
+        <!-- Today's Weather Summary -->
+        <section class="card" style="margin-bottom: 25px;">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h2><i class="fa-solid fa-cloud-sun" style="color: #FF9800;"></i> Today's Weather</h2>
+                <a href="/weather" style="font-size:12px; color:#28734a; text-decoration:none; font-weight:600;">Weather Station <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+            <div>
+                <p>Location: <strong id="weatherLocation">--</strong> <span id="dashCurrentLocBadge" style="display:none; background:#e8f4ea; color:#28734a; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; margin-left:6px;"><i class="fa-solid fa-location-arrow"></i> Current Location</span></p>
+                <p style="margin-top: 10px;">Temp: <strong id="weatherTemp">-- °C</strong> | Rain: <strong id="weatherRain">-- %</strong></p>
+                <div style="margin-top: 20px; display:flex; gap:10px; flex-wrap:wrap;">
+                    <input type="hidden" id="weatherLocationInput" value="">
+                    <button id="getWeatherBtn" class="analyze-btn" style="width: auto; padding: 10px 18px; margin-top: 0;"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                    <button id="dashCurrentLocBtn" type="button" class="irr-btn-secondary" style="background:#f0faf4; border:1px solid #b8d2bd; color:#173d2a; border-radius:10px; padding:10px 16px; font-weight:600; cursor:pointer; font-size:13px; display:inline-flex; align-items:center; gap:6px;" onclick="fetchDashboardCurrentLocation()"><i class="fa-solid fa-location-crosshairs"></i> Current Location</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Short Irrigation Status -->
+        <section class="card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-droplet" style="color: #03A9F4;"></i> Irrigation Status</h2>
+            </div>
+            <div id="recommendation">
+                <p>Check the Irrigation planner to get the latest recommendation.</p>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <a href="/irrigation" style="color: #28734a; font-weight: bold; text-decoration: none;">Go to Irrigation Planner <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script>
+// Load context and kept weather on dashboard load
+window.addEventListener('DOMContentLoaded', () => {
+    try {
+        const stored = localStorage.getItem('farmContext');
+        const activeFarm = JSON.parse(localStorage.getItem('activeFarm') || 'null');
+        if (stored && activeFarm && JSON.parse(stored).farm_id == activeFarm.id) {
+            const data = JSON.parse(stored);
+            if (document.getElementById('activeFarmName') && data.farm_name) document.getElementById('activeFarmName').textContent = data.farm_name;
+            if (document.getElementById('moistureValue')) document.getElementById('moistureValue').textContent = data.moisture + '%';
+            if (document.getElementById('temperatureValue')) document.getElementById('temperatureValue').textContent = data.temperature + '°C';
+            if (document.getElementById('humidityValue')) document.getElementById('humidityValue').textContent = data.humidity + '%';
+            if (document.getElementById('rainValue')) document.getElementById('rainValue').textContent = data.rainfall + '%';
+            
+            if (document.getElementById('selectedCrop')) document.getElementById('selectedCrop').textContent = data.crop;
+            if (document.getElementById('selectedSoil')) document.getElementById('selectedSoil').textContent = data.soil;
+            if (document.getElementById('selectedWater')) document.getElementById('selectedWater').textContent = data.water;
+            
+            if (document.getElementById('healthScore')) document.getElementById('healthScore').textContent = data.health + '%';
+            
+            if (document.getElementById('recommendation')) {
+                document.getElementById('recommendation').innerHTML = `<h3 style="color: ${data.irrigation_required === 'Yes' ? '#28734a' : '#77847c'}">Irrigation Required: ${data.irrigation_required}</h3>`;
+            }
+        }
+    } catch(e) {}
+
+    // Load and keep weather data on dashboard
+    loadDashboardWeather();
+});
+
+function loadDashboardWeather() {
+    try {
+        const saved = localStorage.getItem('lastWeatherData');
+        const isCurrent = localStorage.getItem('useCurrentLocation') === 'true';
+        if (saved) {
+            const w = JSON.parse(saved);
+            applyDashboardWeather(w, isCurrent);
+        } else {
+            fetchDashboardWeather('Hyderabad');
+        }
+    } catch(e) {}
+}
+
+function applyDashboardWeather(w, isCurrent = false) {
+    if (!w) return;
+    if (document.getElementById('weatherLocation')) {
+        document.getElementById('weatherLocation').textContent = `${w.location}${w.country ? ', ' + w.country : ''}`;
+    }
+    if (document.getElementById('weatherTemp')) document.getElementById('weatherTemp').textContent = `${w.temperature} °C`;
+    if (document.getElementById('weatherRain')) document.getElementById('weatherRain').textContent = `${w.rain_probability} %`;
+    if (document.getElementById('weatherLocationInput')) document.getElementById('weatherLocationInput').value = w.location || '';
+    
+    // Also update weather stats cards if they are empty
+    if (document.getElementById('temperatureValue') && (document.getElementById('temperatureValue').textContent === '--°C' || document.getElementById('temperatureValue').textContent === '--')) {
+        document.getElementById('temperatureValue').textContent = `${w.temperature}°C`;
+    }
+    if (document.getElementById('humidityValue') && (document.getElementById('humidityValue').textContent === '--%' || document.getElementById('humidityValue').textContent === '--')) {
+        document.getElementById('humidityValue').textContent = `${w.humidity}%`;
+    }
+    if (document.getElementById('rainValue') && (document.getElementById('rainValue').textContent === '--%' || document.getElementById('rainValue').textContent === '--')) {
+        document.getElementById('rainValue').textContent = `${w.rain_probability}%`;
+    }
+    const badge = document.getElementById('dashCurrentLocBadge');
+    if (badge) badge.style.display = isCurrent ? 'inline-block' : 'none';
+}
+
+async function fetchDashboardWeather(loc) {
+    try {
+        const res = await fetch(`/api/weather?location=${encodeURIComponent(loc)}`);
+        const data = await res.json();
+        if (data.success) {
+            applyDashboardWeather(data, false);
+            localStorage.setItem('lastWeatherData', JSON.stringify(data));
+            localStorage.setItem('savedWeatherLocation', data.location);
+            localStorage.setItem('useCurrentLocation', 'false');
+        }
+    } catch(e) {}
+}
+
+async function fetchDashboardCurrentLocation() {
+    const btn = document.getElementById('dashCurrentLocBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Locating...';
+    }
+    if (!navigator.geolocation) {
+        alert('Geolocation not supported by your browser.');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Current Location';
+        }
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+            try {
+                const res = await fetch(`/api/weather?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+                const data = await res.json();
+                if (data.success) {
+                    data.isCurrentLocation = true;
+                    applyDashboardWeather(data, true);
+                    localStorage.setItem('lastWeatherData', JSON.stringify(data));
+                    localStorage.setItem('savedWeatherLocation', data.location);
+                    localStorage.setItem('useCurrentLocation', 'true');
+                }
+            } catch(e) {
+                alert('Could not fetch weather for current location.');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Current Location';
+                }
+            }
+        },
+        (err) => {
+            alert('Location access denied or unavailable.');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Current Location';
+            }
+        },
+        { timeout: 10000 }
+    );
+}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign in | AgroMind</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-body">
+    <main class="auth-layout">
+        <section class="auth-visual">
+            <a class="auth-brand" href="/"><span class="brand-mark"><i class="fa-solid fa-seedling"></i></span><span>AgroMind</span></a>
+            <div class="visual-copy"><span class="eyebrow">FARM INTELLIGENCE, SIMPLIFIED</span><h1>Smart Farming.<br><em>Better Harvests.</em></h1><p>Make every growing decision with clearer data, calmer workflows, and intelligence built for the field.</p></div>
+            <div class="feature-list"><div><i class="fa-solid fa-leaf"></i><span><strong>Smart Crop Monitoring</strong><small>See crop health trends before problems spread.</small></span></div><div><i class="fa-solid fa-droplet"></i><span><strong>Intelligent Irrigation</strong><small>Use the right amount of water at the right time.</small></span></div><div><i class="fa-solid fa-cloud-sun"></i><span><strong>Weather Insights</strong><small>Plan around live conditions and rainfall.</small></span></div></div>
+            <div class="visual-footer"><span>01</span><div></div><span>Built for the next harvest</span></div>
+        </section>
+        <section class="auth-panel"><div class="auth-card"><div class="mobile-brand"><span class="brand-mark"><i class="fa-solid fa-seedling"></i></span><strong>AgroMind</strong></div><div class="auth-heading"><span class="eyebrow">WELCOME BACK</span><h2>Sign in to your farm</h2><p>Pick up where you left off.</p></div>{% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}<form method="post" class="auth-form"><label for="email">Email address</label><div class="field-wrap"><i class="fa-regular fa-envelope"></i><input id="email" name="email" type="email" placeholder="you@example.com" required autocomplete="email"></div><label for="password">Password <a href="#">Forgot password?</a></label><div class="field-wrap"><i class="fa-solid fa-lock"></i><input id="password" name="password" type="password" placeholder="Enter your password" required autocomplete="current-password"><button type="button" class="password-toggle" data-target="password" aria-label="Show password"><i class="fa-regular fa-eye"></i></button></div><div class="form-options"><label class="check-label"><input type="checkbox" name="remember"> <span>Remember me</span></label></div><button class="auth-submit" type="submit">Sign in <i class="fa-solid fa-arrow-right"></i></button></form><div class="auth-divider"><span>or</span></div><a class="demo-button" href="/demo-login"><i class="fa-solid fa-wand-magic-sparkles"></i> Continue with demo farmer</a><p class="auth-switch">New to AgroMind? <a href="/register">Create an account</a></p></div><p class="auth-legal">By continuing, you agree to AgroMind's terms and privacy policy.</p></section>
+    </main>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+</body>
+</html>

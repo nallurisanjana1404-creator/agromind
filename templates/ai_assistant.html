@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant | AgroMind{% endblock %}
+{% block heading %}AgroMind AI{% endblock %}
+{% block description %}Your intelligent farming companion. Ask questions about crops, soil, weather, or irrigation.{% endblock %}
+
+{% block content %}
+<section class="content-card full-chat-card">
+    <div class="chat-container">
+        <!-- Messages -->
+        <div id="aiChatMessages" class="chat-messages full-page">
+            <div class="bot-message">
+                <div class="message-avatar">AI</div>
+                <div class="message-content">
+                    <p>Hello! I am AgroMind AI. How can I assist you with your farm today?</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Suggestions -->
+        <div class="suggestions full-page-suggestions">
+            <button onclick="askSuggestion(this)">Should I irrigate now?</button>
+            <button onclick="askSuggestion(this)">How can I save water?</button>
+            <button onclick="askSuggestion(this)">Why are my leaves yellow?</button>
+            <button onclick="askSuggestion(this)">What should I do today?</button>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-area full-page-input">
+            <button id="clearChatBtn" class="clear-btn" aria-label="Clear chat" title="Clear chat">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+            <input id="aiChatInput" placeholder="Ask about your farm..." autocomplete="off">
+            <button id="aiSendMessageBtn" class="send-btn" aria-label="Send message">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,562 @@
+{% extends "base.html" %}
+{% block title %}Irrigation Planner | AgroSmart{% endblock %}
+{% block heading %}Irrigation Planner{% endblock %}
+{% block description %}Smart irrigation decisions driven by live weather and your field conditions.{% endblock %}
+
+{% block content %}
+
+<!-- ── STEP 1: Farm Location & Auto-Weather ─────────────────────────────── -->
+<div class="card" style="margin-bottom:24px;">
+    <p style="font-size:11px;letter-spacing:2px;color:#5d8a6c;font-weight:800;margin-bottom:8px;">STEP 1 — LOCATION</p>
+    <h3 style="margin-bottom:16px;font-size:17px;">Farm Location &amp; Live Weather</h3>
+
+    <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+            <label class="irr-label" for="location"><i class="fa-solid fa-location-dot"></i> Farm Location</label>
+            <input id="location" class="irr-input" type="text" placeholder="e.g. Hyderabad" autocomplete="off">
+        </div>
+        <div style="padding-top:24px;">
+            <button id="fetchWeatherBtn" class="irr-btn-secondary" type="button">
+                <i class="fa-solid fa-cloud-sun"></i> Fetch Weather
+            </button>
+        </div>
+    </div>
+
+    <!-- weather error -->
+    <div id="weatherErr" class="irr-alert irr-alert-err" style="display:none;margin-top:12px;"></div>
+
+    <!-- weather loading -->
+    <div id="weatherLoading" style="display:none;margin-top:16px;color:#77847c;font-size:13px;">
+        <i class="fa-solid fa-spinner fa-spin"></i> Fetching live weather data…
+    </div>
+
+    <!-- weather result tiles -->
+    <div id="weatherResult" style="display:none;margin-top:18px;">
+        <p style="font-size:12px;color:#4f9160;font-weight:700;margin-bottom:12px;">
+            <i class="fa-solid fa-circle-check"></i>
+            Live weather loaded for <span id="wLocName" style="color:#173d2a;"></span>
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <div class="irr-weather-tile">
+                <i class="fa-solid fa-temperature-half" style="color:#d56d3d;"></i>
+                <span class="irr-weather-val" id="wTemp">--</span>
+                <span class="irr-weather-lbl">Temperature (°C)</span>
+            </div>
+            <div class="irr-weather-tile">
+                <i class="fa-solid fa-droplet" style="color:#3182a5;"></i>
+                <span class="irr-weather-val" id="wHumidity">--</span>
+                <span class="irr-weather-lbl">Humidity (%)</span>
+            </div>
+            <div class="irr-weather-tile">
+                <i class="fa-solid fa-cloud-rain" style="color:#5d68a8;"></i>
+                <span class="irr-weather-val" id="wRain">--</span>
+                <span class="irr-weather-lbl">Rain Probability (%)</span>
+            </div>
+        </div>
+        <!-- hidden real inputs consumed by the engine -->
+        <input type="hidden" id="temperature">
+        <input type="hidden" id="humidity">
+        <input type="hidden" id="rainfall">
+    </div>
+</div>
+
+<!-- ── STEP 2: Soil Moisture ─────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom:24px;">
+    <p style="font-size:11px;letter-spacing:2px;color:#5d8a6c;font-weight:800;margin-bottom:8px;">STEP 2 — SOIL MOISTURE</p>
+    <h3 style="margin-bottom:16px;font-size:17px;">How well do you know your soil moisture?</h3>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+        <button id="btnKnow" class="irr-mode-btn irr-mode-active" type="button" onclick="setMoistureMode('know')">
+            <i class="fa-solid fa-gauge-high"></i> I know my soil moisture
+        </button>
+        <button id="btnUnknown" class="irr-mode-btn" type="button" onclick="setMoistureMode('unknown')">
+            <i class="fa-solid fa-question"></i> I don't know my soil moisture
+        </button>
+    </div>
+
+    <!-- MODE A: single value -->
+    <div id="modeSingle">
+        <label class="irr-label" for="moistureSingle">Soil Moisture (%)</label>
+        <input id="moistureSingle" class="irr-input" type="number" min="0" max="100" step="0.1" placeholder="e.g. 25" style="max-width:240px;">
+        <p style="font-size:12px;color:#77847c;margin-top:6px;">Enter the reading from your soil sensor or probe (0–100%).</p>
+    </div>
+
+    <!-- MODE B: 6 readings -->
+    <div id="modeMulti" style="display:none;">
+        <p style="font-size:13px;color:#536159;margin-bottom:14px;">
+            Enter readings from up to <strong>6 spots</strong> in your field. At least <strong>5 valid readings</strong> are required. Leave a field blank to skip it.
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;">
+            <div>
+                <label class="irr-label">Reading 1</label>
+                <input class="irr-input moisture-reading" type="number" min="0" max="100" step="0.1" placeholder="e.g. 22">
+            </div>
+            <div>
+                <label class="irr-label">Reading 2</label>
+                <input class="irr-input moisture-reading" type="number" min="0" max="100" step="0.1" placeholder="e.g. 28">
+            </div>
+            <div>
+                <label class="irr-label">Reading 3</label>
+                <input class="irr-input moisture-reading" type="number" min="0" max="100" step="0.1" placeholder="e.g. 25">
+            </div>
+            <div>
+                <label class="irr-label">Reading 4</label>
+                <input class="irr-input moisture-reading" type="number" min="0" max="100" step="0.1" placeholder="e.g. 30">
+            </div>
+            <div>
+                <label class="irr-label">Reading 5</label>
+                <input class="irr-input moisture-reading" type="number" min="0" max="100" step="0.1" placeholder="e.g. 24">
+            </div>
+            <div>
+                <label class="irr-label">Reading 6 <span style="font-weight:400;color:#a0afa6;">(optional)</span></label>
+                <input class="irr-input moisture-reading" type="number" min="0" max="100" step="0.1" placeholder="e.g. 27">
+            </div>
+        </div>
+
+        <div id="avgResult" style="display:none; background:#eef7f0; border:1px solid #c3e0cc; border-radius:10px; padding:14px 18px; margin-top:4px;">
+            <span style="font-size:13px;color:#28734a;font-weight:600;">
+                <i class="fa-solid fa-calculator"></i>
+                Calculated Average Moisture: <strong id="avgValue" style="font-size:18px;">-- %</strong>
+                &nbsp;<span id="avgCount" style="font-size:11px;color:#4f9160;"></span>
+            </span>
+        </div>
+        <div id="avgError" class="irr-alert irr-alert-err" style="display:none;margin-top:8px;"></div>
+
+        <button type="button" class="irr-btn-secondary" style="margin-top:14px;" onclick="calculateAverage()">
+            <i class="fa-solid fa-calculator"></i> Calculate Average
+        </button>
+    </div>
+</div>
+
+<!-- ── STEP 3: Farm Details ───────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom:24px;">
+    <p style="font-size:11px;letter-spacing:2px;color:#5d8a6c;font-weight:800;margin-bottom:8px;">STEP 3 — FARM DETAILS</p>
+    <h3 style="margin-bottom:16px;font-size:17px;">Crop &amp; Field Information</h3>
+
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+        <div>
+            <label class="irr-label" for="crop"><i class="fa-solid fa-seedling"></i> Crop Type</label>
+            <select id="crop" class="irr-input">
+                <option>Tomato</option>
+                <option>Rice</option>
+                <option>Wheat</option>
+                <option>Maize</option>
+                <option>Cotton</option>
+                <option>Chilli</option>
+                <option>Groundnut</option>
+                <option>Sugarcane</option>
+            </select>
+        </div>
+        <div>
+            <label class="irr-label" for="soil"><i class="fa-solid fa-mountain"></i> Soil Type</label>
+            <select id="soil" class="irr-input">
+                <option>Loamy</option>
+                <option>Clay</option>
+                <option>Sandy</option>
+                <option>Black</option>
+                <option>Red</option>
+            </select>
+        </div>
+        <div>
+            <label class="irr-label" for="farmSize"><i class="fa-solid fa-ruler-combined"></i> Farm Size (Acres)</label>
+            <input id="farmSize" class="irr-input" type="number" min="0.1" step="0.1" placeholder="e.g. 2.0">
+        </div>
+        <div>
+            <label class="irr-label" for="water"><i class="fa-solid fa-faucet-drip"></i> Water Availability</label>
+            <select id="water" class="irr-input">
+                <option>Low</option>
+                <option selected>Medium</option>
+                <option>High</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- ── Validation error & Analyze button ─────────────────────────────────── -->
+<div id="formError" class="irr-alert irr-alert-err" style="display:none;margin-bottom:16px;"></div>
+
+<button id="analyzeBtn" class="analyze-btn" type="button" style="width:100%;padding:16px;font-size:15px;" onclick="submitIrrigation()">
+    <i class="fa-solid fa-wand-magic-sparkles"></i> Analyze &amp; Get Recommendation
+</button>
+
+<!-- ── RESULT ─────────────────────────────────────────────────────────────── -->
+<section id="recommendation" class="card" style="display:none;margin-top:28px;text-align:center;padding:36px 28px;">
+    <!-- filled by JS -->
+</section>
+
+<!-- ── Styles scoped to this page ─────────────────────────────────────────── -->
+<style>
+.irr-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #34493b;
+    margin-bottom: 6px;
+}
+.irr-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #d7e1d8;
+    border-radius: 9px;
+    font-size: 13px;
+    outline: none;
+    background: #fafcfb;
+    color: #1d2b21;
+    transition: border-color 0.2s;
+}
+.irr-input:focus { border-color: #5e9b70; box-shadow: 0 0 0 3px rgba(92,156,112,.1); }
+.irr-btn-secondary {
+    padding: 11px 20px;
+    border: 1px solid #c3e0cc;
+    border-radius: 9px;
+    background: white;
+    color: #28734a;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.irr-btn-secondary:hover { background: #eef7f0; }
+.irr-mode-btn {
+    padding: 12px 20px;
+    border: 2px solid #d7e1d8;
+    border-radius: 10px;
+    background: white;
+    color: #536159;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.irr-mode-btn:hover { border-color: #28734a; color: #28734a; }
+.irr-mode-active { border-color: #28734a !important; background: #eef7f0 !important; color: #28734a !important; }
+.irr-weather-tile {
+    background: #fafcfb;
+    border: 1px solid #e5ebe6;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+.irr-weather-tile i { font-size: 22px; }
+.irr-weather-val { font-size: 24px; font-weight: 700; color: #173d2a; }
+.irr-weather-lbl { font-size: 11px; color: #77847c; }
+.irr-alert { padding: 11px 14px; border-radius: 8px; font-size: 13px; }
+.irr-alert-err { color: #9c4d47; background: #fff0ee; border: 1px solid #f5c6c0; }
+.irr-alert-ok  { color: #28734a; background: #eef7f0; border: 1px solid #c3e0cc; }
+.result-row { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+.result-pill { background: #f0f6f2; border-radius: 10px; padding: 12px 20px; text-align: center; }
+.result-pill span { display: block; font-size: 11px; color: #77847c; margin-bottom: 4px; }
+.result-pill strong { font-size: 16px; color: #173d2a; }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let moistureMode = 'know';       // 'know' | 'unknown'
+let calculatedAvg = null;        // set after calculateAverage()
+let weatherLoaded = false;       // true once weather fetch succeeds
+let weatherTemperature = null;
+let weatherHumidity    = null;
+let weatherRainfall    = null;
+
+// ─── MOISTURE MODE TOGGLE ─────────────────────────────────────────────────────
+function setMoistureMode(mode) {
+    moistureMode = mode;
+    calculatedAvg = null;
+    document.getElementById('avgResult').style.display = 'none';
+    document.getElementById('avgError').style.display  = 'none';
+
+    if (mode === 'know') {
+        document.getElementById('modeSingle').style.display = 'block';
+        document.getElementById('modeMulti').style.display  = 'none';
+        document.getElementById('btnKnow').classList.add('irr-mode-active');
+        document.getElementById('btnUnknown').classList.remove('irr-mode-active');
+    } else {
+        document.getElementById('modeSingle').style.display = 'none';
+        document.getElementById('modeMulti').style.display  = 'block';
+        document.getElementById('btnKnow').classList.remove('irr-mode-active');
+        document.getElementById('btnUnknown').classList.add('irr-mode-active');
+    }
+}
+
+// ─── CALCULATE AVERAGE ───────────────────────────────────────────────────────
+function calculateAverage() {
+    const inputs = Array.from(document.querySelectorAll('.moisture-reading'));
+    const avgErr = document.getElementById('avgError');
+    const avgRes = document.getElementById('avgResult');
+    avgErr.style.display = 'none';
+    avgRes.style.display = 'none';
+
+    const values = [];
+    let hasInvalid = false;
+
+    inputs.forEach((inp, i) => {
+        const raw = inp.value.trim();
+        if (raw === '') return;                         // blank = skipped
+        const num = parseFloat(raw);
+        if (isNaN(num) || num < 0 || num > 100) {
+            hasInvalid = true;
+            inp.style.borderColor = '#e05c5c';
+        } else {
+            inp.style.borderColor = '#5e9b70';
+            values.push(num);
+        }
+    });
+
+    if (hasInvalid) {
+        avgErr.textContent = '⚠️ One or more readings are invalid. Values must be between 0 and 100.';
+        avgErr.style.display = 'block';
+        return;
+    }
+
+    if (values.length < 5) {
+        avgErr.textContent = `⚠️ At least 5 valid readings are required. You entered ${values.length}.`;
+        avgErr.style.display = 'block';
+        return;
+    }
+
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    calculatedAvg = Math.round(avg * 10) / 10;
+
+    document.getElementById('avgValue').textContent = calculatedAvg + '%';
+    document.getElementById('avgCount').textContent = `(${values.length} readings)`;
+    avgRes.style.display = 'block';
+}
+
+// ─── FETCH WEATHER ────────────────────────────────────────────────────────────
+document.getElementById('fetchWeatherBtn').addEventListener('click', async () => {
+    const location = document.getElementById('location').value.trim();
+    const weatherErr = document.getElementById('weatherErr');
+    const weatherLoading = document.getElementById('weatherLoading');
+    const weatherResult  = document.getElementById('weatherResult');
+
+    weatherErr.style.display = 'none';
+
+    if (!location || location.length < 2) {
+        weatherErr.textContent = '⚠️ Please enter a valid farm location (at least 2 characters).';
+        weatherErr.style.display = 'block';
+        return;
+    }
+
+    weatherLoading.style.display = 'block';
+    weatherResult.style.display  = 'none';
+    weatherLoaded = false;
+
+    try {
+        const res  = await fetch(`/api/weather?location=${encodeURIComponent(location)}`);
+        const data = await res.json();
+
+        weatherLoading.style.display = 'none';
+
+        if (!data.success) {
+            weatherErr.textContent = '⚠️ ' + (data.error || 'Location not found. Please try a different name.');
+            weatherErr.style.display = 'block';
+            return;
+        }
+
+        // Store for submission
+        weatherTemperature = data.temperature;
+        weatherHumidity    = data.humidity;
+        weatherRainfall    = data.rain_probability;
+        weatherLoaded      = true;
+
+        // Populate hidden inputs (used by app.js farmContext save)
+        document.getElementById('temperature').value = data.temperature;
+        document.getElementById('humidity').value    = data.humidity;
+        document.getElementById('rainfall').value    = data.rain_probability;
+
+        // Display
+        document.getElementById('wLocName').textContent   = data.location + ', ' + data.country;
+        document.getElementById('wTemp').textContent      = data.temperature;
+        document.getElementById('wHumidity').textContent  = data.humidity;
+        document.getElementById('wRain').textContent      = data.rain_probability;
+        weatherResult.style.display = 'block';
+
+    } catch (e) {
+        weatherLoading.style.display = 'none';
+        weatherErr.textContent = '⚠️ Could not connect to the weather service. Check your internet connection.';
+        weatherErr.style.display = 'block';
+    }
+});
+
+// ─── SUBMIT IRRIGATION ────────────────────────────────────────────────────────
+async function submitIrrigation() {
+    const formErr  = document.getElementById('formError');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    formErr.style.display = 'none';
+
+    // 1. Weather check
+    if (!weatherLoaded) {
+        formErr.textContent = '⚠️ Please fetch live weather data for your farm location before analyzing.';
+        formErr.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+    }
+
+    // 2. Moisture check
+    let finalMoisture;
+    if (moistureMode === 'know') {
+        const raw = document.getElementById('moistureSingle').value.trim();
+        const num = parseFloat(raw);
+        if (raw === '' || isNaN(num) || num < 0 || num > 100) {
+            formErr.textContent = '⚠️ Please enter a valid soil moisture value between 0 and 100.';
+            formErr.style.display = 'block';
+            return;
+        }
+        finalMoisture = num;
+    } else {
+        // Trigger the average calculation to validate
+        calculateAverage();
+        if (calculatedAvg === null) {
+            formErr.textContent = '⚠️ Please calculate the average soil moisture from your readings first.';
+            formErr.style.display = 'block';
+            return;
+        }
+        finalMoisture = calculatedAvg;
+    }
+
+    // 3. Farm size check
+    const farmSizeRaw = document.getElementById('farmSize').value.trim();
+    const farmSize    = parseFloat(farmSizeRaw);
+    if (!farmSizeRaw || isNaN(farmSize) || farmSize <= 0) {
+        formErr.textContent = '⚠️ Please enter a valid farm size greater than 0 acres.';
+        formErr.style.display = 'block';
+        return;
+    }
+
+    // 4. Build payload
+    const payload = {
+        farm_id:    JSON.parse(localStorage.getItem('activeFarm') || 'null')?.id || null,
+        location:    document.getElementById('location').value.trim(),
+        crop:        document.getElementById('crop').value,
+        soil:        document.getElementById('soil').value,
+        moisture:    finalMoisture,
+        temperature: weatherTemperature,
+        humidity:    weatherHumidity,
+        rainfall:    weatherRainfall,
+        farm_size:   farmSize,
+        water:       document.getElementById('water').value
+    };
+
+    // 5. Submit
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing…';
+
+    try {
+        const res    = await fetch('/api/irrigation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+
+        if (!result.success) throw new Error(result.error || 'Analysis failed');
+
+        // Show result card
+        const recommendation = document.getElementById('recommendation');
+        const isRequired = result.irrigation_required;
+        const iconColor  = isRequired ? '#3182a5' : '#4f9160';
+        const icon       = isRequired ? 'fa-faucet-drip' : 'fa-check-circle';
+
+        recommendation.style.display = 'block';
+        recommendation.innerHTML = `
+            <div style="width:70px;height:70px;border-radius:50%;background:${isRequired ? '#e2f1f7' : '#e7f2e6'};
+                color:${iconColor};display:flex;align-items:center;justify-content:center;
+                font-size:28px;margin:0 auto 18px;">
+                <i class="fa-solid ${icon}"></i>
+            </div>
+            <h2 style="font-size:22px;margin-bottom:12px;color:${iconColor};">
+                ${isRequired ? 'Irrigation Recommended' : 'Irrigation Not Required'}
+            </h2>
+            <p style="color:#536159;line-height:1.7;max-width:640px;margin:0 auto 10px;font-size:14px;white-space:pre-line;text-align:left;">
+                ${result.explanation}
+            </p>
+            <p style="font-size:12px;color:#a0afa6;margin-bottom:20px;">
+                Soil moisture used: <strong>${finalMoisture}%</strong>
+                ${moistureMode === 'unknown' ? '(average of your readings)' : ''}
+                &nbsp;|&nbsp; Temperature: <strong>${weatherTemperature}°C</strong>
+                &nbsp;|&nbsp; Rain probability: <strong>${weatherRainfall}%</strong>
+            </p>
+            <div class="result-row">
+                <div class="result-pill"><span>Recommended Time</span><strong>${result.recommended_time}</strong></div>
+                <div class="result-pill"><span>Duration</span><strong>${result.duration} min</strong></div>
+                <div class="result-pill"><span>Approx. Water</span><strong>${result.water_quantity} L</strong></div>
+                <div class="result-pill"><span>Risk Level</span><strong>${result.risk}</strong></div>
+                <div class="result-pill"><span>Confidence</span><strong>${result.confidence}%</strong></div>
+            </div>
+        `;
+        recommendation.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Persist context for AI Assistant & Dashboard
+        const health = Math.max(0, 100
+            - (finalMoisture < 30 ? 10 : 0)
+            - (weatherTemperature > 32 ? 8 : 0)
+            - (weatherHumidity < 35 ? 5 : 0)
+            - (weatherRainfall > 70 ? 5 : 0));
+
+        localStorage.setItem('farmContext', JSON.stringify({
+            crop:                payload.crop,
+            soil:                payload.soil,
+            moisture:            finalMoisture,
+            temperature:         weatherTemperature,
+            humidity:            weatherHumidity,
+            rainfall:            weatherRainfall,
+            farm_id:             result.farm_id,
+            farm_name:           result.farm_name,
+            farm_size:           farmSize,
+            water:               payload.water,
+            irrigation_required: isRequired ? 'Yes' : 'No',
+            health:              health
+        }));
+
+    } catch (err) {
+        formErr.textContent = '⚠️ ' + (err.message || 'Something went wrong. Please try again.');
+        formErr.style.display = 'block';
+    } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Analyze &amp; Get Recommendation';
+    }
+}
+
+// ─── AUTO-FILL rain from Weather page ────────────────────────────────────────
+// (kept for backward compat — if Weather page sends rain probability)
+window.addEventListener('DOMContentLoaded', () => {
+    try {
+        const activeFarm = JSON.parse(localStorage.getItem('activeFarm') || 'null');
+        if (activeFarm) {
+            document.getElementById('location').value = activeFarm.location || '';
+            document.getElementById('crop').value = activeFarm.crop || 'Tomato';
+            document.getElementById('soil').value = activeFarm.soil || 'Loamy';
+            document.getElementById('farmSize').value = activeFarm.farm_size || '';
+            document.getElementById('water').value = activeFarm.water || 'Medium';
+        }
+    } catch (error) {}
+
+    const rain = localStorage.getItem('weatherRainForIrrigation');
+    if (rain !== null) {
+        localStorage.removeItem('weatherRainForIrrigation');
+        // pre-fill location if available in lastWeatherData
+        const lastW = localStorage.getItem('lastWeatherData');
+        if (lastW) {
+            try {
+                const d = JSON.parse(lastW);
+                if (d.location) document.getElementById('location').value = d.location;
+                // auto-trigger weather fetch
+                document.getElementById('fetchWeatherBtn').click();
+            } catch(e) {}
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Crop Health | AgroMind{% endblock %}
+{% block heading %}Crop Health Monitor{% endblock %}
+{% block description %}Deep dive into your crop's current condition and environment.{% endblock %}
+
+{% block content %}
+<div id="no-data-state" style="display: none; text-align: center; padding: 60px 20px; background: white; border-radius: 18px; box-shadow: 0 5px 20px rgba(35, 70, 45, 0.06);">
+    <i class="fa-solid fa-leaf" style="font-size: 56px; color: #b8d2bd; margin-bottom: 20px;"></i>
+    <h2 style="font-size: 24px; color: #173d2a;">No Health Analysis Found</h2>
+    <p style="color: #77847c; margin-top: 10px; margin-bottom: 25px; font-size: 15px;">Please analyze your farm's conditions to generate a comprehensive health report.</p>
+    <a href="/irrigation" class="analyze-btn" style="display: inline-block; text-decoration: none; width: auto; padding: 14px 28px; border-radius: 10px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Analyze Farm</a>
+</div>
+
+<div id="health-dashboard-content" style="display: none;">
+    <!-- Large Crop Health Score -->
+    <div class="card" style="margin-bottom: 25px; text-align: center; padding: 45px 20px; position: relative; overflow: hidden;">
+        <h2 style="color: #77847c; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 25px;">Overall Health Score</h2>
+        
+        <div style="position: relative; width: 200px; height: 200px; margin: 0 auto; background: #e0e0e0; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(0,0,0,0.08);" id="healthCircle">
+            <div style="width: 170px; height: 170px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 2;">
+                <strong id="chScore" style="font-size: 48px; color: #173d2a; line-height: 1;">--%</strong>
+                <span id="chStatus" style="font-size: 15px; color: #4CAF50; font-weight: bold; margin-top: 8px;">Healthy</span>
+            </div>
+        </div>
+        
+        <p style="margin-top: 30px; font-size: 15px; color: #536159;">Current Crop: <strong id="chCrop" style="color: #173d2a;">--</strong> &nbsp;|&nbsp; Last Analysis: <strong id="chTime" style="color: #173d2a;">Just now</strong></p>
+    </div>
+
+    <!-- 3 Compact Cards -->
+    <div class="stats-grid stats" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 25px;">
+        <div class="stat-card">
+            <div class="stat-icon moisture-icon"><i class="fa-solid fa-droplet"></i></div>
+            <div class="stat-info"><span class="stat-label">Soil Moisture</span><h2 id="chMoisture">--%</h2></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon temperature-icon"><i class="fa-solid fa-temperature-half"></i></div>
+            <div class="stat-info"><span class="stat-label">Temperature</span><h2 id="chTemp">--°C</h2></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon humidity-icon"><i class="fa-solid fa-water"></i></div>
+            <div class="stat-info"><span class="stat-label">Humidity</span><h2 id="chHumidity">--%</h2></div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 25px;">
+        <!-- Health Analysis Details -->
+        <div class="card">
+            <div class="card-header" style="margin-bottom: 20px;">
+                <h2><i class="fa-solid fa-microscope" style="color:#3182a5;"></i> Health Analysis</h2>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- Moisture Indicator -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: 600; color: #34493b; font-size: 14px;">Soil Moisture Level</span>
+                        <span id="indMoisture" style="background: #e7f2e6; color: #4f9160; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: bold;">Optimal</span>
+                    </div>
+                    <div style="width: 100%; background: #eef2ef; height: 10px; border-radius: 5px; overflow: hidden;">
+                        <div id="progMoisture" style="width: 50%; height: 100%; background: #4CAF50; transition: width 1s ease-in-out;"></div>
+                    </div>
+                </div>
+
+                <!-- Temperature Indicator -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: 600; color: #34493b; font-size: 14px;">Temperature Range</span>
+                        <span id="indTemp" style="background: #fbe8dd; color: #d56d3d; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: bold;">High</span>
+                    </div>
+                    <div style="width: 100%; background: #eef2ef; height: 10px; border-radius: 5px; overflow: hidden;">
+                        <div id="progTemp" style="width: 80%; height: 100%; background: #FF9800; transition: width 1s ease-in-out;"></div>
+                    </div>
+                </div>
+
+                <!-- Humidity Indicator -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: 600; color: #34493b; font-size: 14px;">Relative Humidity</span>
+                        <span id="indHumidity" style="background: #e7f2e6; color: #4f9160; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: bold;">Good</span>
+                    </div>
+                    <div style="width: 100%; background: #eef2ef; height: 10px; border-radius: 5px; overflow: hidden;">
+                        <div id="progHumidity" style="width: 60%; height: 100%; background: #4CAF50; transition: width 1s ease-in-out;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 25px;">
+            <!-- Main Concern -->
+            <div class="card" style="border-left: 5px solid #d87545; height: 100%;">
+                <div class="card-header" style="margin-bottom: 15px;">
+                    <h2 style="color: #d87545;"><i class="fa-solid fa-triangle-exclamation"></i> Main Concern</h2>
+                </div>
+                <p id="mainConcern" style="color: #536159; line-height: 1.6; font-size: 14px;">Analyzing field data...</p>
+            </div>
+
+            <!-- Recommended Action -->
+            <div class="card" style="border-left: 5px solid #3182a5; height: 100%;">
+                <div class="card-header" style="margin-bottom: 15px;">
+                    <h2 style="color: #3182a5;"><i class="fa-solid fa-list-check"></i> Recommended Action</h2>
+                </div>
+                <p id="recAction" style="color: #536159; line-height: 1.6; font-size: 14px;">Analyzing field data...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Crop Care Tips -->
+    <div class="card">
+        <div class="card-header" style="margin-bottom: 20px;">
+            <h2><i class="fa-solid fa-lightbulb" style="color:#FFC107;"></i> Expert Crop Care Tips</h2>
+        </div>
+        <div class="tips-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;" id="careTipsList">
+            <div style="background: #fafcfb; padding: 18px; border-radius: 12px; border: 1px solid #e5ebe6; display: flex; gap: 12px; align-items: flex-start;">
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: #e7f2e6; color: #4f9160; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa-solid fa-leaf"></i></div>
+                <p style="color: #647169; font-size: 13px; line-height: 1.5; margin: 0;">Inspect leaves regularly for any signs of yellowing or pests to catch diseases early.</p>
+            </div>
+            
+            <div style="background: #fafcfb; padding: 18px; border-radius: 12px; border: 1px solid #e5ebe6; display: flex; gap: 12px; align-items: flex-start;">
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: #e2f1f7; color: #3182a5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa-solid fa-droplet"></i></div>
+                <p style="color: #647169; font-size: 13px; line-height: 1.5; margin: 0;">Deep watering encourages strong root growth. It is generally better than frequent shallow watering.</p>
+            </div>
+            
+            <div style="background: #fafcfb; padding: 18px; border-radius: 12px; border: 1px solid #e5ebe6; display: flex; gap: 12px; align-items: flex-start;">
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: #fbe8dd; color: #d56d3d; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa-solid fa-temperature-half"></i></div>
+                <p style="color: #647169; font-size: 13px; line-height: 1.5; margin: 0;">Apply mulch to soil around the base of crops to regulate temperature and retain moisture.</p>
+            </div>
+            
+            <div style="background: #fafcfb; padding: 18px; border-radius: 12px; border: 1px solid #e5ebe6; display: flex; gap: 12px; align-items: flex-start;">
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: #e8eafa; color: #5d68a8; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa-solid fa-cloud-rain"></i></div>
+                <p style="color: #647169; font-size: 13px; line-height: 1.5; margin: 0;">Avoid fertilizing heavily right before heavy rainfall, as nutrients can wash away before absorption.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    try {
+        const stored = localStorage.getItem('farmContext');
+        if (!stored) {
+            document.getElementById('no-data-state').style.display = 'block';
+            return;
+        }
+
+        const data = JSON.parse(stored);
+        const activeFarm = JSON.parse(localStorage.getItem('activeFarm') || 'null');
+        if (!activeFarm || data.farm_id != activeFarm.id) {
+            document.getElementById('no-data-state').style.display = 'block';
+            return;
+        }
+        document.getElementById('health-dashboard-content').style.display = 'block';
+
+        const healthScore = data.health || 0;
+        document.getElementById('chScore').textContent = healthScore + '%';
+        
+        // Update circle gradient based on score
+        const color = healthScore > 75 ? '#4CAF50' : (healthScore > 40 ? '#FF9800' : '#F44336');
+        document.getElementById('healthCircle').style.background = `conic-gradient(${color} ${healthScore * 3.6}deg, #e0e0e0 0deg)`;
+        
+        let statusText = "Critical Condition";
+        if (healthScore > 75) statusText = "Optimal Health";
+        else if (healthScore > 40) statusText = "Needs Attention";
+        
+        const statusEl = document.getElementById('chStatus');
+        statusEl.textContent = statusText;
+        statusEl.style.color = color;
+        
+        document.getElementById('chCrop').textContent = data.crop || 'Unknown';
+        
+        // Compact Stats
+        document.getElementById('chMoisture').textContent = (data.moisture || 0) + '%';
+        document.getElementById('chTemp').textContent = (data.temperature || 0) + '°C';
+        document.getElementById('chHumidity').textContent = (data.humidity || 0) + '%';
+        
+        // Progress Bars & Indicators
+        const m = data.moisture || 0;
+        document.getElementById('progMoisture').style.width = m + '%';
+        if(m < 30) {
+            document.getElementById('indMoisture').textContent = 'Low';
+            document.getElementById('indMoisture').style.color = '#F44336';
+            document.getElementById('indMoisture').style.background = '#ffebee';
+            document.getElementById('progMoisture').style.background = '#F44336';
+        } else {
+            document.getElementById('indMoisture').textContent = 'Optimal';
+            document.getElementById('indMoisture').style.color = '#4CAF50';
+            document.getElementById('indMoisture').style.background = '#e8f5e9';
+            document.getElementById('progMoisture').style.background = '#4CAF50';
+        }
+        
+        const t = data.temperature || 0;
+        // Normalize temp 0 to 50 for the progress bar
+        const tPercent = Math.min(100, Math.max(0, (t / 50) * 100));
+        document.getElementById('progTemp').style.width = tPercent + '%';
+        
+        if(t > 35 || t < 5) {
+            document.getElementById('indTemp').textContent = t > 35 ? 'High' : 'Low';
+            document.getElementById('indTemp').style.color = '#F44336';
+            document.getElementById('indTemp').style.background = '#ffebee';
+            document.getElementById('progTemp').style.background = '#F44336';
+        } else {
+            document.getElementById('indTemp').textContent = 'Normal';
+            document.getElementById('indTemp').style.color = '#4CAF50';
+            document.getElementById('indTemp').style.background = '#e8f5e9';
+            document.getElementById('progTemp').style.background = '#4CAF50';
+        }
+
+        const h = data.humidity || 0;
+        document.getElementById('progHumidity').style.width = h + '%';
+        if(h < 30) {
+            document.getElementById('indHumidity').textContent = 'Dry';
+            document.getElementById('indHumidity').style.color = '#FF9800';
+            document.getElementById('indHumidity').style.background = '#fff3e0';
+            document.getElementById('progHumidity').style.background = '#FF9800';
+        } else {
+            document.getElementById('indHumidity').textContent = 'Good';
+            document.getElementById('indHumidity').style.color = '#4CAF50';
+            document.getElementById('indHumidity').style.background = '#e8f5e9';
+            document.getElementById('progHumidity').style.background = '#4CAF50';
+        }
+
+        // Logic for Main Concern & Action
+        let concern = "Current environmental conditions are stable and optimal for crop growth.";
+        let action = "Continue routine monitoring and adhere to your standard maintenance schedule.";
+        
+        if (m < 30) {
+            concern = `Soil moisture is dangerously low (${m}%). The roots of your ${data.crop} are at high risk of water stress and wilting.`;
+            action = "Irrigate the field immediately. Ensure deep watering to allow roots to recover, preferably during cooler hours.";
+        } else if (t > 35) {
+            concern = `Extremely high temperatures (${t}°C) can cause severe heat stress and stall crop development.`;
+            action = "Maintain adequate soil moisture levels. Consider protective shading or mulching if physically and economically feasible.";
+        } else if (data.rainfall > 70) {
+            concern = `High probability of heavy rainfall (${data.rainfall}%). Excessive standing water may lead to root rot and fungal diseases.`;
+            action = "Ensure all field drainage systems are clear. Delay any planned irrigation or heavy fertilization until weather clears.";
+        } else if (h > 85) {
+            concern = `High humidity (${h}%) creates a favorable environment for fungal and bacterial diseases.`;
+            action = "Monitor leaves closely for spots or mildew. Ensure good air circulation if growing in a controlled environment.";
+        }
+        
+        document.getElementById('mainConcern').textContent = concern;
+        document.getElementById('recAction').textContent = action;
+        
+    } catch(e) {
+        document.getElementById('no-data-state').style.display = 'block';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,497 @@
+{% extends "base.html" %}
+{% block title %}Weather | AgroMind{% endblock %}
+{% block heading %}Weather Station{% endblock %}
+{% block description %}Live conditions, 3-day forecast, and smart irrigation advisories for your farm location.{% endblock %}
+
+{% block content %}
+
+<!-- ======= SEARCH BAR ======= -->
+<div class="card" style="margin-bottom:25px; padding: 22px 28px;">
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <div style="flex:1; min-width: 220px; position: relative;">
+            <i class="fa-solid fa-location-dot" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#93a399; font-size:14px;"></i>
+            <input
+                id="weatherLocationInput"
+                type="text"
+                placeholder="Enter city or village name..."
+                value=""
+                style="width:100%; padding: 13px 14px 13px 38px; border: 1px solid #d7e1d8; border-radius: 10px; font-size:14px; outline:none; background:#fafcfb; color:#1d2b21;"
+                onkeydown="if(event.key==='Enter') fetchWeather()"
+            >
+        </div>
+        <button id="getWeatherBtn" class="analyze-btn" style="white-space:nowrap; width:auto; padding:13px 22px; margin:0;" onclick="fetchWeather()">
+            <i class="fa-solid fa-magnifying-glass"></i> Search Weather
+        </button>
+        <button id="currentLocBtn" class="irr-btn-secondary" type="button" style="white-space:nowrap; width:auto; padding:13px 20px; margin:0; background:#eaf5ee; border:1px solid #b2d7bf; color:#17492c; border-radius:10px; font-weight:600; cursor:pointer; font-size:14px; display:inline-flex; align-items:center; gap:8px; transition:all 0.2s;" onclick="useCurrentLocation()">
+            <i class="fa-solid fa-location-crosshairs"></i> Current Location
+        </button>
+    </div>
+
+    <!-- Error / Loading inline -->
+    <div id="weatherError" style="display:none; margin-top:12px; color:#9c4d47; background:#fff0ee; padding:10px 14px; border-radius:8px; font-size:13px;">
+        <i class="fa-solid fa-circle-exclamation"></i> <span id="weatherErrorMsg">Location not found.</span>
+    </div>
+</div>
+
+<!-- ======= LOADING STATE ======= -->
+<div id="weatherLoading" style="display:none; text-align:center; padding:60px 20px; background:white; border-radius:18px; box-shadow: 0 5px 20px rgba(35,70,45,0.06); margin-bottom:25px;">
+    <div class="spin-icon" style="width:56px; height:56px; border: 4px solid #e5ebe6; border-top-color:#28734a; border-radius:50%; margin:0 auto 18px; animation:spin 0.8s linear infinite;"></div>
+    <p id="weatherLoadingMsg" style="color:#77847c; font-size:15px;">Fetching live weather data...</p>
+</div>
+
+<!-- ======= INITIAL EMPTY STATE ======= -->
+<div id="weatherEmptyState" style="display:none; text-align:center; padding:60px 20px; background:white; border-radius:18px; box-shadow: 0 5px 20px rgba(35,70,45,0.06); margin-bottom:25px;">
+    <i class="fa-solid fa-cloud-sun" style="font-size:56px; color:#b8d2bd; margin-bottom:18px;"></i>
+    <h2 style="color:#173d2a; font-size:22px;">Search for your farm location</h2>
+    <p style="color:#77847c; margin-top:8px; font-size:14px;">Enter a city or village name above, or click "Current Location".</p>
+</div>
+
+<!-- ======= WEATHER DATA SECTION ======= -->
+<div id="weatherDataSection" style="display:none;">
+
+    <!-- Current Conditions Header -->
+    <div class="card" style="margin-bottom:25px; background: linear-gradient(135deg, #173d2a 0%, #2c6043 100%); color:white; border:none;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:20px;">
+            <div>
+                <p style="font-size:11px; letter-spacing:2px; color:#78c091; text-transform:uppercase; margin-bottom:6px;">CURRENT CONDITIONS</p>
+                <div style="display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <h2 id="weatherLocation" style="font-size:26px; color:white; margin:0;">--</h2>
+                    <span id="currentLocBadge" style="display:none; background:rgba(120,192,145,0.25); border:1px solid rgba(120,192,145,0.45); color:#a3e7b8; font-size:12px; padding:3px 10px; border-radius:20px; font-weight:600;"><i class="fa-solid fa-location-arrow"></i> Current Location</span>
+                </div>
+                <p id="weatherSubtitle" style="color:#c4d9c9; font-size:13px; margin-top:6px;">--</p>
+            </div>
+            <div style="text-align:right;">
+                <div id="weatherTempBig" style="font-size:64px; font-weight:700; color:white; line-height:1;">--°</div>
+                <p id="weatherTempFeelsLike" style="color:#c4d9c9; font-size:13px; margin-top:4px;">Feels like --</p>
+            </div>
+        </div>
+
+        <!-- 4 current stat pills -->
+        <div style="display:grid; grid-template-columns: repeat(4,1fr); gap:12px; margin-top:28px;">
+            <div style="background:rgba(255,255,255,0.1); border-radius:12px; padding:14px; text-align:center;">
+                <i class="fa-solid fa-droplet" style="color:#78c091; font-size:20px; margin-bottom:6px;"></i>
+                <div id="weatherHumidity" style="font-size:20px; font-weight:700; color:white;">--%</div>
+                <div style="font-size:11px; color:#b8d2bd; margin-top:3px;">Humidity</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.1); border-radius:12px; padding:14px; text-align:center;">
+                <i class="fa-solid fa-cloud-rain" style="color:#78c091; font-size:20px; margin-bottom:6px;"></i>
+                <div id="weatherRain" style="font-size:20px; font-weight:700; color:white;">--%</div>
+                <div style="font-size:11px; color:#b8d2bd; margin-top:3px;">Rain Probability</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.1); border-radius:12px; padding:14px; text-align:center;">
+                <i class="fa-solid fa-cloud" style="color:#78c091; font-size:20px; margin-bottom:6px;"></i>
+                <div id="weatherRainfall" style="font-size:20px; font-weight:700; color:white;">-- mm</div>
+                <div style="font-size:11px; color:#b8d2bd; margin-top:3px;">Rainfall</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.1); border-radius:12px; padding:14px; text-align:center;">
+                <i class="fa-solid fa-temperature-half" style="color:#78c091; font-size:20px; margin-bottom:6px;"></i>
+                <div id="weatherTemp" style="font-size:20px; font-weight:700; color:white;">--°C</div>
+                <div style="font-size:11px; color:#b8d2bd; margin-top:3px;">Temperature</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1.3fr 1fr; gap:25px; margin-bottom:25px;">
+
+        <!-- 3-Day Forecast -->
+        <div class="card">
+            <div class="card-header" style="margin-bottom:20px;">
+                <h2><i class="fa-solid fa-calendar-days" style="color:#5d68a8;"></i> 3-Day Forecast</h2>
+            </div>
+            <div id="forecastGrid" style="display:flex; flex-direction:column; gap:14px;">
+                <!-- Filled by JS -->
+            </div>
+        </div>
+
+        <!-- Irrigation Advisory -->
+        <div class="card" id="irrigationAdvisoryCard" style="border-left: 5px solid #28734a;">
+            <div class="card-header" style="margin-bottom:18px;">
+                <h2><i class="fa-solid fa-droplet" style="color:#28734a;"></i> Irrigation Advisory</h2>
+            </div>
+            <div id="advisoryContent" style="display:flex; flex-direction:column; gap:14px;">
+                <!-- Filled by JS -->
+            </div>
+            <button
+                id="sendToIrrigationBtn"
+                class="analyze-btn"
+                style="margin-top:20px; width:100%; padding:12px;"
+                onclick="sendRainToIrrigation()">
+                <i class="fa-solid fa-paper-plane"></i> Send Rain Data to Irrigation Planner
+            </button>
+        </div>
+    </div>
+
+    <!-- Farming Weather Tips -->
+    <div class="card">
+        <div class="card-header" style="margin-bottom:20px;">
+            <h2><i class="fa-solid fa-lightbulb" style="color:#FFC107;"></i> Farming Weather Tips</h2>
+        </div>
+        <div id="farmingTips" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+            <!-- Filled by JS -->
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Store weather state for irrigation redirect
+    let currentWeatherData = null;
+
+    function resetCurrentLocBtn() {
+        const btn = document.getElementById('currentLocBtn');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Current Location';
+        }
+    }
+
+    async function useCurrentLocation() {
+        hideError();
+        if (!navigator.geolocation) {
+            showError('Geolocation is not supported by your browser. Please enter your city or village manually.');
+            return;
+        }
+
+        const btn = document.getElementById('currentLocBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Locating...';
+        }
+
+        document.getElementById('weatherLoadingMsg').textContent = 'Detecting your location and loading live weather...';
+        showLoading(true);
+        document.getElementById('weatherEmptyState').style.display = 'none';
+
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                await fetchWeatherByCoords(lat, lon, true);
+                resetCurrentLocBtn();
+            },
+            (err) => {
+                resetCurrentLocBtn();
+                showLoading(false);
+                let msg = 'Unable to detect location.';
+                if (err.code === 1) {
+                    msg = 'Location permission was denied. Please allow location access or type your city name.';
+                } else if (err.code === 2) {
+                    msg = 'GPS or network location unavailable. Please enter your city name.';
+                } else if (err.code === 3) {
+                    msg = 'Location detection timed out. Please try again or type your city name.';
+                }
+                showError(msg);
+                if (!currentWeatherData) {
+                    document.getElementById('weatherEmptyState').style.display = 'block';
+                }
+            },
+            { timeout: 12000, enableHighAccuracy: true, maximumAge: 60000 }
+        );
+    }
+
+    async function fetchWeatherByCoords(lat, lon, isCurrent = true, isBackground = false) {
+        if (!isBackground) {
+            hideError();
+            document.getElementById('weatherLoadingMsg').textContent = 'Fetching live weather for your location...';
+            showLoading(true);
+            if (!currentWeatherData) {
+                document.getElementById('weatherDataSection').style.display = 'none';
+                document.getElementById('weatherEmptyState').style.display = 'none';
+            }
+        }
+
+        try {
+            const activeFarm = JSON.parse(localStorage.getItem('activeFarm') || 'null');
+            const farmQuery = activeFarm?.id ? `&farm_id=${activeFarm.id}` : '';
+            const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}${farmQuery}`);
+            const data = await response.json();
+
+            if (!data.success) {
+                if (!isBackground) {
+                    showLoading(false);
+                    if (!currentWeatherData) document.getElementById('weatherEmptyState').style.display = 'block';
+                    showError(data.error || 'Unable to fetch weather for your coordinates.');
+                }
+                return;
+            }
+
+            data.isCurrentLocation = isCurrent;
+            data.latitude = lat;
+            data.longitude = lon;
+            currentWeatherData = data;
+
+            // Update input display
+            document.getElementById('weatherLocationInput').value = data.location;
+
+            if (!isBackground) showLoading(false);
+            renderWeather(data, isCurrent);
+            document.getElementById('weatherDataSection').style.display = 'block';
+
+            // Keep location in localStorage
+            localStorage.setItem('lastWeatherData', JSON.stringify(data));
+            localStorage.setItem('savedWeatherLocation', data.location);
+            localStorage.setItem('useCurrentLocation', isCurrent ? 'true' : 'false');
+
+        } catch (err) {
+            if (!isBackground) {
+                showLoading(false);
+                if (!currentWeatherData) document.getElementById('weatherEmptyState').style.display = 'block';
+                showError('Unable to connect to weather service. Please check your internet connection.');
+            }
+        }
+    }
+
+    async function fetchWeather(overrideLocation = null, isBackground = false) {
+        const locationInput = document.getElementById('weatherLocationInput');
+        const location = (overrideLocation || locationInput.value).trim();
+
+        // Validate
+        if (!location || location.length < 2) {
+            showError('Please enter a valid location name (at least 2 characters).');
+            return;
+        }
+        if (/^\d+$/.test(location)) {
+            showError('Please enter a city or village name, not a number.');
+            return;
+        }
+
+        if (!isBackground) {
+            hideError();
+            document.getElementById('weatherLoadingMsg').textContent = 'Fetching live weather data...';
+            showLoading(true);
+            if (!currentWeatherData) {
+                document.getElementById('weatherDataSection').style.display = 'none';
+                document.getElementById('weatherEmptyState').style.display = 'none';
+            }
+        }
+
+        try {
+            const activeFarm = JSON.parse(localStorage.getItem('activeFarm') || 'null');
+            const farmQuery = activeFarm?.id ? `&farm_id=${activeFarm.id}` : '';
+            const response = await fetch(`/api/weather?location=${encodeURIComponent(location)}${farmQuery}`);
+            const data = await response.json();
+
+            if (!data.success) {
+                if (!isBackground) {
+                    showLoading(false);
+                    if (!currentWeatherData) document.getElementById('weatherEmptyState').style.display = 'block';
+                    showError(data.error || 'Location not found. Please try another name.');
+                }
+                return;
+            }
+
+            data.isCurrentLocation = false;
+            currentWeatherData = data;
+            document.getElementById('weatherLocationInput').value = data.location;
+
+            if (!isBackground) showLoading(false);
+            renderWeather(data, false);
+            document.getElementById('weatherDataSection').style.display = 'block';
+
+            // Persist for dashboard + irrigation
+            localStorage.setItem('lastWeatherData', JSON.stringify(data));
+            localStorage.setItem('savedWeatherLocation', data.location);
+            localStorage.setItem('useCurrentLocation', 'false');
+
+        } catch (err) {
+            if (!isBackground) {
+                showLoading(false);
+                if (!currentWeatherData) document.getElementById('weatherEmptyState').style.display = 'block';
+                showError('Unable to connect to the weather service. Please check your internet connection.');
+            }
+        }
+    }
+
+    function renderWeather(data, isCurrent = false) {
+        const f = data.forecast;
+        const badge = document.getElementById('currentLocBadge');
+        if (badge) {
+            badge.style.display = isCurrent ? 'inline-flex' : 'none';
+        }
+
+        // Hero header
+        document.getElementById('weatherLocation').textContent = `${data.location}${data.country ? ', ' + data.country : ''}`;
+        document.getElementById('weatherSubtitle').textContent = new Date().toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+        document.getElementById('weatherTempBig').textContent = `${data.temperature}°`;
+        document.getElementById('weatherTempFeelsLike').textContent = `Feels like ${Math.round(data.temperature - 1.5)}°C`;
+        document.getElementById('weatherTemp').textContent = `${data.temperature}°C`;
+        document.getElementById('weatherHumidity').textContent = `${data.humidity}%`;
+        document.getElementById('weatherRain').textContent = `${data.rain_probability}%`;
+        document.getElementById('weatherRainfall').textContent = `${data.rainfall} mm`;
+
+        // 3-Day forecast
+        if (f && f.today) {
+            const days = [
+                { name: 'Today', max: f.today.max, min: f.today.min, rain: f.today.rain_probability, rain_mm: f.today.rain },
+                { name: 'Tomorrow', max: f.tomorrow.max, min: f.tomorrow.min, rain: f.tomorrow.rain_probability, rain_mm: f.tomorrow.rain },
+                { name: f.day3 ? 'Day 3' : 'Day After', max: f.day3?.max || '--', min: f.day3?.min || '--', rain: f.day3?.rain_probability || '--', rain_mm: f.day3?.rain || '--' }
+            ];
+
+            const forecastGrid = document.getElementById('forecastGrid');
+            forecastGrid.innerHTML = days.map((d, i) => {
+                if (i === 2 && d.max === '--') return '';
+                const rainIcon = d.rain > 50 ? '🌧️' : d.rain > 20 ? '🌦️' : '☀️';
+                const rainColor = d.rain > 50 ? '#5d68a8' : d.rain > 20 ? '#FF9800' : '#4CAF50';
+                return `
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:#fafcfb; border-radius:12px; border:1px solid #e8ede9;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span style="font-size:24px;">${rainIcon}</span>
+                        <div>
+                            <div style="font-weight:700; color:#173d2a; font-size:14px;">${d.name}</div>
+                            <div style="font-size:12px; color:#77847c;">${d.rain_mm} mm rainfall</div>
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:16px; font-weight:700; color:#173d2a;">${d.max}° / ${d.min}°</div>
+                        <div style="font-size:12px; font-weight:600; color:${rainColor};">🌧 ${d.rain}% rain</div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Irrigation Advisory
+            const rainProb = data.rain_probability;
+            let advisory, advisoryColor, advisoryIcon, advisoryBg;
+            if (rainProb >= 70) {
+                advisory = `Rain probability is very high at ${rainProb}%. Irrigation is not recommended today. Delay watering by at least 24 hours and check drainage.`;
+                advisoryColor = '#5d68a8'; advisoryIcon = '🌧️'; advisoryBg = '#f0f2fc';
+            } else if (rainProb >= 40) {
+                advisory = `Moderate rain expected (${rainProb}% probability). Consider delaying irrigation. Monitor soil moisture and reassess tomorrow.`;
+                advisoryColor = '#FF9800'; advisoryIcon = '🌦️'; advisoryBg = '#fff8f0';
+            } else {
+                advisory = `Low rain probability (${rainProb}%). If soil moisture is below 30%, irrigation is recommended — preferably in the early morning to reduce evaporation.`;
+                advisoryColor = '#28734a'; advisoryIcon = '☀️'; advisoryBg = '#f0faf4';
+            }
+
+            document.getElementById('advisoryContent').innerHTML = `
+                <div style="background:${advisoryBg}; border-radius:12px; padding:18px; display:flex; gap:14px; align-items:flex-start;">
+                    <span style="font-size:28px; line-height:1;">${advisoryIcon}</span>
+                    <p style="color:${advisoryColor}; font-size:14px; line-height:1.6; font-weight:500; margin:0;">${advisory}</p>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div style="background:#fafcfb; border-radius:10px; padding:12px; border:1px solid #e8ede9;">
+                        <div style="font-size:11px; color:#77847c; margin-bottom:4px;">Best Irrigation Time</div>
+                        <div style="font-weight:700; color:#173d2a;">${data.temperature > 32 ? '6:00 AM' : '7:00 AM'}</div>
+                    </div>
+                    <div style="background:#fafcfb; border-radius:10px; padding:12px; border:1px solid #e8ede9;">
+                        <div style="font-size:11px; color:#77847c; margin-bottom:4px;">Today's High/Low</div>
+                        <div style="font-weight:700; color:#173d2a;">${f.today.max}° / ${f.today.min}°C</div>
+                    </div>
+                </div>`;
+        }
+
+        // Farming Tips
+        const tips = generateFarmingTips(data);
+        document.getElementById('farmingTips').innerHTML = tips.map(tip => `
+            <div style="background:#fafcfb; padding:18px; border-radius:12px; border:1px solid #e5ebe6; display:flex; gap:12px; align-items:flex-start;">
+                <div style="width:36px; height:36px; border-radius:10px; background:${tip.bg}; color:${tip.color}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="fa-solid ${tip.icon}"></i>
+                </div>
+                <p style="color:#647169; font-size:13px; line-height:1.6; margin:0;">${tip.text}</p>
+            </div>
+        `).join('');
+    }
+
+    function generateFarmingTips(data) {
+        const tips = [];
+        const rain = data.rain_probability;
+        const temp = data.temperature;
+        const humidity = data.humidity;
+
+        if (rain > 60) {
+            tips.push({ icon:'fa-umbrella', bg:'#e8eafa', color:'#5d68a8', text:'Heavy rain expected. Ensure your field drainage channels are clear to prevent waterlogging and root rot.' });
+            tips.push({ icon:'fa-ban', bg:'#ffebee', color:'#F44336', text:'Avoid applying fertilizers or pesticides today — heavy rain will wash them away before absorption.' });
+        } else if (rain > 30) {
+            tips.push({ icon:'fa-clock', bg:'#fff3e0', color:'#FF9800', text:'Moderate rain likely. You may be able to skip irrigation today. Re-evaluate soil moisture conditions tomorrow.' });
+        } else {
+            tips.push({ icon:'fa-droplet', bg:'#e2f1f7', color:'#3182a5', text:'Low rain forecast. Check your soil moisture. If below 30%, schedule early morning irrigation to minimize evaporation losses.' });
+        }
+
+        if (temp > 35) {
+            tips.push({ icon:'fa-temperature-full', bg:'#fbe8dd', color:'#d56d3d', text:`Extreme heat alert (${temp}°C). Water crops early at dawn and consider temporary shading for sensitive crops.` });
+        } else if (temp < 12) {
+            tips.push({ icon:'fa-snowflake', bg:'#e8eafa', color:'#5d68a8', text:`Cold conditions (${temp}°C). Protect sensitive seedlings from frost overnight. Delay irrigation in the evening.` });
+        } else {
+            tips.push({ icon:'fa-seedling', bg:'#e7f2e6', color:'#4f9160', text:'Temperatures are in an optimal range for most crops. A great time for fertilization or pest management activities.' });
+        }
+
+        if (humidity > 80) {
+            tips.push({ icon:'fa-bacterium', bg:'#ffebee', color:'#F44336', text:'High humidity increases the risk of fungal diseases. Inspect leaves for spots or mildew and ensure good air circulation.' });
+        } else if (humidity < 35) {
+            tips.push({ icon:'fa-wind', bg:'#fff3e0', color:'#FF9800', text:'Low humidity can accelerate transpiration stress. Consider mulching around your crop base to retain soil moisture.' });
+        } else {
+            tips.push({ icon:'fa-leaf', bg:'#e7f2e6', color:'#4f9160', text:'Humidity is in a healthy range. Routine inspections are sufficient — no immediate interventions needed today.' });
+        }
+
+        tips.push({ icon:'fa-sun', bg:'#fffde7', color:'#FBC02D', text:'Irrigate in the early morning or late evening to minimize evaporation and maximize water absorption by roots.' });
+
+        return tips;
+    }
+
+    function sendRainToIrrigation() {
+        if (!currentWeatherData) return alert('Please search for a location first.');
+        localStorage.setItem('weatherRainForIrrigation', currentWeatherData.rain_probability);
+        window.location.href = '/irrigation';
+    }
+
+    function showLoading(show) {
+        document.getElementById('weatherLoading').style.display = show ? 'block' : 'none';
+    }
+
+    function showError(msg) {
+        document.getElementById('weatherErrorMsg').textContent = msg;
+        document.getElementById('weatherError').style.display = 'block';
+    }
+
+    function hideError() {
+        document.getElementById('weatherError').style.display = 'none';
+    }
+
+    // Keep and auto-restore current location on page open
+    window.addEventListener('DOMContentLoaded', () => {
+        const prev = localStorage.getItem('lastWeatherData');
+        const isCurrentLoc = localStorage.getItem('useCurrentLocation') === 'true';
+
+        if (prev) {
+            try {
+                const d = JSON.parse(prev);
+                currentWeatherData = d;
+                document.getElementById('weatherLocationInput').value = d.location || '';
+                renderWeather(d, isCurrentLoc);
+                document.getElementById('weatherDataSection').style.display = 'block';
+                document.getElementById('weatherEmptyState').style.display = 'none';
+
+                // Refresh fresh data in background
+                if (isCurrentLoc && d.latitude && d.longitude) {
+                    fetchWeatherByCoords(d.latitude, d.longitude, true, true);
+                } else if (d.location) {
+                    fetchWeather(d.location, true);
+                }
+                return;
+            } catch(e) {
+                console.error('Error parsing stored weather:', e);
+            }
+        }
+
+        // If no previous data, try to detect current location or fallback to Hyderabad
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    fetchWeatherByCoords(pos.coords.latitude, pos.coords.longitude, true);
+                },
+                () => {
+                    fetchWeather('Hyderabad');
+                },
+                { timeout: 6000 }
+            );
+        } else {
+            fetchWeather('Hyderabad');
+        }
+    });
+</script>
+{% endblock %}

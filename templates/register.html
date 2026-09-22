@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Create account | AgroMind</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-body">
+    <main class="auth-layout">
+        <section class="auth-visual"><a class="auth-brand" href="/"><span class="brand-mark"><i class="fa-solid fa-seedling"></i></span><span>AgroMind</span></a><div class="visual-copy"><span class="eyebrow">A CLEARER WAY TO GROW</span><h1>Grow with<br><em>confidence.</em></h1><p>Bring your farm's most important signals into one thoughtful, focused workspace.</p></div><div class="feature-list"><div><i class="fa-solid fa-chart-line"></i><span><strong>One view for your farm</strong><small>Keep your decisions and history together.</small></span></div><div><i class="fa-solid fa-seedling"></i><span><strong>Made for growers</strong><small>Simple guidance without the noise.</small></span></div></div></section>
+        <section class="auth-panel"><div class="auth-card"><div class="mobile-brand"><span class="brand-mark"><i class="fa-solid fa-seedling"></i></span><strong>AgroMind</strong></div><div class="auth-heading"><span class="eyebrow">GET STARTED</span><h2>Create your account</h2><p>Set up your personal farm workspace.</p></div>{% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endwith %}<form method="post" class="auth-form"><label for="name">Your name</label><div class="field-wrap"><i class="fa-regular fa-user"></i><input id="name" name="name" type="text" placeholder="Farmer name" required autocomplete="name"></div><label for="email">Email address</label><div class="field-wrap"><i class="fa-regular fa-envelope"></i><input id="email" name="email" type="email" placeholder="you@example.com" required autocomplete="email"></div><label for="password">Create password</label><div class="field-wrap"><i class="fa-solid fa-lock"></i><input id="password" name="password" type="password" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password"><button type="button" class="password-toggle" data-target="password" aria-label="Show password"><i class="fa-regular fa-eye"></i></button></div><button class="auth-submit" type="submit">Create account <i class="fa-solid fa-arrow-right"></i></button></form><p class="auth-switch">Already have an account? <a href="/login">Sign in</a></p></div><p class="auth-legal">Your data is stored securely in your AgroMind workspace.</p></section>
+    </main>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+</body>
+</html>

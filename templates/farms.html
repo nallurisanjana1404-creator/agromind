@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}My Farms | AgroMind{% endblock %}
+{% block heading %}My Farms{% endblock %}
+{% block description %}Create, manage, and select the farm used by AgroMind tools.{% endblock %}
+
+{% block content %}
+<div id="farmMessage" class="farm-message" style="display:none;"></div>
+<div class="farms-layout">
+    <section class="card farm-form-card">
+        <div class="card-header"><h2><i class="fa-solid fa-plus" style="color:#4CAF50;"></i> Add a Farm</h2></div>
+        <form id="farmForm" class="farm-form">
+            <input type="hidden" id="editingFarmId">
+            <label>Farm Name<input id="farmName" required placeholder="e.g. Sunrise Farm"></label>
+            <label>Farm Location<input id="farmLocation" required placeholder="e.g. Hyderabad"></label>
+            <label>Crop Type<select id="farmCrop" required><option>Tomato</option><option>Rice</option><option>Wheat</option><option>Maize</option><option>Cotton</option><option>Chilli</option><option>Groundnut</option><option>Sugarcane</option></select></label>
+            <label>Soil Type<select id="farmSoil" required><option>Loamy</option><option>Clay</option><option>Sandy</option><option>Black</option><option>Red</option></select></label>
+            <label>Farm Size (Acres)<input id="farmSizeValue" type="number" min="0.1" step="0.1" required placeholder="e.g. 2"></label>
+            <label>Water Availability<select id="farmWater" required><option>Low</option><option selected>Medium</option><option>High</option></select></label>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;">
+                <button class="analyze-btn" type="submit" id="saveFarmBtn"><i class="fa-solid fa-floppy-disk"></i> Save Farm</button>
+                <button class="irr-btn-secondary" type="button" id="cancelEditBtn" style="display:none;">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <section>
+        <div class="card-header" style="margin-bottom:14px;"><h2><i class="fa-solid fa-layer-group" style="color:#28734a;"></i> Saved Farms</h2></div>
+        <div id="farmList" class="farm-list">
+            {% for farm in farms %}
+            <article class="farm-card {% if active_farm and active_farm['id'] == farm['id'] %}active-farm-card{% endif %}" data-farm='{{ dict(farm)|tojson }}'>
+                <div class="farm-card-top"><div><span class="farm-card-label">{% if active_farm and active_farm['id'] == farm['id'] %}Active Farm{% else %}Farm{% endif %}</span><h3>{{ farm['name'] }}</h3></div><i class="fa-solid fa-seedling farm-card-icon"></i></div>
+                <p><i class="fa-solid fa-location-dot"></i> {{ farm['location'] }}</p>
+                <p><strong>{{ farm['crop'] }}</strong> · {{ farm['soil'] }} soil · {{ farm['farm_size'] }} acres</p>
+                <p>Water availability: {{ farm['water'] }}</p>
+                <div class="farm-card-actions"><button class="farm-action continue-farm" data-id="{{ farm['id'] }}"><i class="fa-solid fa-check"></i> Continue</button><button class="farm-action edit-farm" data-id="{{ farm['id'] }}"><i class="fa-solid fa-pen"></i> Edit</button><button class="farm-action delete-farm" data-id="{{ farm['id'] }}"><i class="fa-solid fa-trash"></i> Delete</button></div>
+            </article>
+            {% else %}
+            <div id="emptyFarms" class="card" style="text-align:center; padding:40px 20px;"><i class="fa-solid fa-tractor" style="font-size:42px; color:#b8d2bd;"></i><h3 style="margin-top:14px;">No farms saved yet</h3><p style="color:#77847c; margin-top:8px;">Add your first farm to start using the planner.</p></div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.farms-layout { display:grid; grid-template-columns:minmax(280px, .8fr) minmax(340px, 1.2fr); gap:25px; }
+.farm-form { display:grid; gap:13px; }
+.farm-form label { color:#34493b; font-size:12px; font-weight:700; }
+.farm-form input, .farm-form select { display:block; width:100%; margin-top:6px; padding:12px 13px; border:1px solid #d7e1d8; border-radius:9px; background:#fafcfb; color:#1d2b21; font-size:13px; }
+.farm-list { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+.farm-card { background:#fff; border:1px solid #e1e9e2; border-radius:12px; padding:20px; box-shadow:0 5px 20px rgba(35,70,45,.05); }
+.active-farm-card { border:2px solid #5e9b70; background:#f5fbf6; }
+.farm-card-top { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:16px; }
+.farm-card-label { color:#4f9160; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+.farm-card h3 { color:#173d2a; margin-top:4px; }
+.farm-card-icon { color:#78c091; font-size:22px; }
+.farm-card p { color:#647169; font-size:13px; margin-top:9px; }
+.farm-card-actions { display:flex; gap:7px; flex-wrap:wrap; margin-top:18px; }
+.farm-action { border:0; border-radius:8px; padding:9px 11px; font-size:12px; font-weight:700; cursor:pointer; background:#eef7f0; color:#28734a; }
+.farm-action:hover { background:#dcefe0; }
+.delete-farm { color:#a14d47; background:#fff0ee; }
+.farm-message { padding:12px 15px; border-radius:9px; margin-bottom:18px; font-size:13px; }
+@media (max-width: 800px) { .farms-layout { grid-template-columns:1fr; } }
+</style>
+<script>
+const farmForm = document.getElementById('farmForm');
+const farmMessage = document.getElementById('farmMessage');
+const fields = { name: document.getElementById('farmName'), location: document.getElementById('farmLocation'), crop: document.getElementById('farmCrop'), soil: document.getElementById('farmSoil'), farm_size: document.getElementById('farmSizeValue'), water: document.getElementById('farmWater') };
+const editingFarmId = document.getElementById('editingFarmId');
+function showFarmMessage(text, error = false) { farmMessage.textContent = text; farmMessage.style.display = 'block'; farmMessage.style.color = error ? '#9c4d47' : '#28734a'; farmMessage.style.background = error ? '#fff0ee' : '#eef7f0'; }
+function farmPayload() { return Object.fromEntries(Object.entries(fields).map(([key, element]) => [key, key === 'farm_size' ? Number(element.value) : element.value.trim()])); }
+function saveFarmContext(farm) { localStorage.setItem('activeFarm', JSON.stringify(farm)); }
+function resetFarmForm() { farmForm.reset(); editingFarmId.value = ''; document.getElementById('saveFarmBtn').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Farm'; document.getElementById('cancelEditBtn').style.display = 'none'; }
+farmForm.addEventListener('submit', async (event) => { event.preventDefault(); const id = editingFarmId.value; const response = await fetch(id ? `/api/farms/${id}` : '/api/farms', { method: id ? 'PUT' : 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(farmPayload()) }); const data = await response.json(); if (!data.success) { showFarmMessage(data.error, true); return; } saveFarmContext(data.farm); showFarmMessage(id ? 'Farm updated.' : 'Farm saved and selected.'); window.location.reload(); });
+document.getElementById('cancelEditBtn').addEventListener('click', resetFarmForm);
+document.querySelectorAll('.continue-farm').forEach(button => button.addEventListener('click', async () => { const response = await fetch(`/api/farms/${button.dataset.id}/select`, {method:'POST'}); const data = await response.json(); if (data.success) { saveFarmContext(data.farm); window.location.href = '/dashboard'; } else showFarmMessage(data.error, true); }));
+document.querySelectorAll('.edit-farm').forEach(button => button.addEventListener('click', () => { const farm = JSON.parse(button.closest('.farm-card').dataset.farm); editingFarmId.value = farm.id; Object.entries(fields).forEach(([key, element]) => element.value = farm[key]); document.getElementById('saveFarmBtn').innerHTML = '<i class="fa-solid fa-pen"></i> Update Farm'; document.getElementById('cancelEditBtn').style.display = 'inline-block'; window.scrollTo({top:0, behavior:'smooth'}); }));
+document.querySelectorAll('.delete-farm').forEach(button => button.addEventListener('click', async () => { if (!window.confirm('Delete this farm and its associated records?')) return; const response = await fetch(`/api/farms/${button.dataset.id}`, {method:'DELETE'}); const data = await response.json(); if (data.success) window.location.reload(); else showFarmMessage(data.error, true); }));
+</script>
+{% endblock %}
