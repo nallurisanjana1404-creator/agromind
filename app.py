@@ -1731,12 +1731,11 @@ def get_weather():
             "forecast": forecast,
         })
 
-    except requests.RequestException:
+    except requests.RequestException as error:
+        print("WEATHER REQUEST ERROR:", repr(error))
         return jsonify({
             "success": False,
-            "error": (
-                "Weather service is temporarily unavailable."
-            ),
+            "error": f"Weather request failed: {str(error)}"
         }), 502
 
     except (TypeError, ValueError):
