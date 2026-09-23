@@ -1,7 +1,7 @@
 Flask
 python-dotenv
-groq>=0.13.0
+groq
 requests
-httpx>=0.28
-gunicorn
 psycopg2-binary
+Werkzeug
+gunicorn
