@@ -556,13 +556,9 @@ nav i,
 .form-options { margin: 7px 0 12px; }
 .check-label { display: flex !important; align-items: center; gap: 7px; font-weight: 500 !important; color: #75847a !important; margin: 0 !important; }
 .check-label input { accent-color: #28734a; }
-.auth-submit, .demo-button { width: 100%; padding: 14px; border-radius: 9px; font-weight: 700; font-size: 13px; text-align: center; text-decoration: none; cursor: pointer; }
+.auth-submit { width: 100%; padding: 14px; border-radius: 9px; font-weight: 700; font-size: 13px; text-align: center; text-decoration: none; cursor: pointer; }
 .auth-submit { border: 0; background: #28734a; color: white; box-shadow: 0 8px 16px rgba(40, 115, 74, .2); }
 .auth-submit i { margin-left: 8px; }
-.auth-divider { display: flex; align-items: center; gap: 12px; color: #a1ada4; font-size: 11px; margin: 22px 0 15px; }
-.auth-divider::before, .auth-divider::after { content: ""; height: 1px; background: #dfe7e0; flex: 1; }
-.demo-button { display: block; color: #36724c; border: 1px solid #cfe0d1; background: rgba(255,255,255,.5); }
-.demo-button i { margin-right: 7px; color: #659d54; }
 .auth-switch, .auth-legal { color: #849188; text-align: center; font-size: 12px; }
 .auth-switch { margin-top: 25px; }
 .auth-switch a { color: #28734a; font-weight: 700; text-decoration: none; }

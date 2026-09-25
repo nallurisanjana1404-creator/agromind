@@ -171,35 +171,6 @@ def init_db():
         """)
 
         # -------------------------------------------------
-        # DEMO USER
-        # -------------------------------------------------
-
-        demo = connection.execute(
-            "SELECT id FROM users WHERE email = ?",
-            ("demo@agrosmart.com",)
-        ).fetchone()
-
-        if not demo:
-            connection.execute(
-                """
-                INSERT INTO users
-                (name, email, password_hash, created_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    "Demo Farmer",
-                    "demo@agrosmart.com",
-                    generate_password_hash("demo123"),
-                    datetime.utcnow().isoformat(),
-                ),
-            )
-
-        demo_id = connection.execute(
-            "SELECT id FROM users WHERE email = ?",
-            ("demo@agrosmart.com",)
-        ).fetchone()["id"]
-
-        # -------------------------------------------------
         # MIGRATIONS
         # -------------------------------------------------
 
@@ -210,11 +181,6 @@ def init_db():
                 connection.execute(
                     f"ALTER TABLE {table} ADD COLUMN user_id INTEGER"
                 )
-
-            connection.execute(
-                f"UPDATE {table} SET user_id = ? WHERE user_id IS NULL",
-                (demo_id,),
-            )
 
         migrations = {
             "farm_profiles": ("name",),
@@ -480,28 +446,6 @@ def register():
                 )
 
     return render_template("register.html")
-
-
-@app.route("/demo-login")
-def demo_login():
-    with get_db() as connection:
-        user = connection.execute(
-            """
-            SELECT id, name
-            FROM users
-            WHERE email = ?
-            """,
-            ("demo@agrosmart.com",),
-        ).fetchone()
-
-    if not user:
-        return redirect(url_for("login"))
-
-    session.clear()
-    session["user_id"] = user["id"]
-    session["user_name"] = user["name"]
-
-    return redirect(url_for("dashboard"))
 
 
 @app.route("/logout")
